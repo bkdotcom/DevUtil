@@ -1,0 +1,27 @@
+{
+    "name": "bdk/devutil",
+    "description": "phpcs sniffs, PHPunit polyfills, coverage-checker summary/css...",
+    "keywords": ["php", "dev"],
+    "license": "MIT",
+    "support": {
+        "issues": "https://github.com/bkdotcom/DevUtil/issues",
+        "source": "https://github.com/bkdotcom/PDevUtil"
+    },
+    "authors": [
+        {
+            "name": "Brad Kent",
+            "email": "bkfake-github@yahoo.com",
+            "homepage": "http://www.bradkent.com/",
+            "role": "Developer"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "bdk\\DevUtil\\": "src",
+        }
+    },
+    "require": {
+        "php": ">=5.4.0",
+        "bdk/css-xpath": "^1.0",
+    }
+}
