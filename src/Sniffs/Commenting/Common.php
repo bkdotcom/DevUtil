@@ -1,6 +1,6 @@
 <?php
 
-namespace bdk\DevUtil\Sniffs\Commenting;
+namespace bdk\Sniffs\Commenting;
 
 class Common
 {

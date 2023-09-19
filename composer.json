@@ -5,7 +5,7 @@
     "license": "MIT",
     "support": {
         "issues": "https://github.com/bkdotcom/DevUtil/issues",
-        "source": "https://github.com/bkdotcom/PDevUtil"
+        "source": "https://github.com/bkdotcom/DevUtil"
     },
     "authors": [
         {
@@ -17,11 +17,12 @@
     ],
     "autoload": {
         "psr-4": {
-            "bdk\\DevUtil\\": "src",
+            "bdk\\PhpUnitPolyfill\\": "src/PhpUnitPolyfill/",
+            "bdk\\Sniffs\\": "src/Sniffs/"
         }
     },
     "require": {
         "php": ">=5.4.0",
-        "bdk/css-xpath": "^1.0",
+        "bdk/css-xpath": "^1.0"
     }
 }

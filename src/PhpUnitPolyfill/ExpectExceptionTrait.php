@@ -1,6 +1,6 @@
 <?php
 
-namespace bdk\DevUtil\PhpUnitPolyfill;
+namespace bdk\PhpUnitPolyfill;
 
 /**
  * expectException & expectExceptionMessage added in PHPUnit 5

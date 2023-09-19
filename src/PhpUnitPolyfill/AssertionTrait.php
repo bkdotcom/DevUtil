@@ -1,6 +1,6 @@
 <?php
 
-namespace bdk\DevUtil\PhpUnitPolyfill;
+namespace bdk\PhpUnitPolyfill;
 
 use ArrayAccess;
 use BadMethodCallException;
