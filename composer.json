@@ -17,6 +17,7 @@
     ],
     "autoload": {
         "psr-4": {
+            "bdk\\DevUtil\\": "src/DevUtil/",
             "bdk\\PhpUnitPolyfill\\": "src/PhpUnitPolyfill/",
             "bdk\\Sniffs\\": "src/Sniffs/"
         }
