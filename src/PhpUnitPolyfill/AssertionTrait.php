@@ -31,7 +31,7 @@ trait AssertionTrait
     /**
      * REMOVED PHPUnit v9
      */
-    private static function polyAssertArraySubset($expected, $actual, $strict = false, $message = ''): void
+    private static function polyAssertArraySubset($expected, $actual, $strict = false, $message = '')
     {
         if (!(\is_array($expected) || $expected instanceof ArrayAccess)) {
             throw InvalidArgumentException::create(
@@ -58,7 +58,7 @@ trait AssertionTrait
     /**
      * Added PHPUnit v7
      */
-    private static function polyAssertIsArray($actual, $message = ''): void
+    private static function polyAssertIsArray($actual, $message = '')
     {
         if (\is_array($actual) === false) {
             throw new AssertionFailedError($message ?: 'Not an array');
@@ -69,7 +69,7 @@ trait AssertionTrait
     /**
      * Added PHPUnit v7
      */
-    private static function polyAssertIsBool($actual, $message = ''): void
+    private static function polyAssertIsBool($actual, $message = '')
     {
         if (\is_bool($actual) === false) {
             throw new AssertionFailedError($message ?: 'Not boolean');
@@ -80,7 +80,7 @@ trait AssertionTrait
     /**
      * Added PHPUnit v7
      */
-    private static function polyAssertIsCallable($actual, $message = ''): void
+    private static function polyAssertIsCallable($actual, $message = '')
     {
         if (\is_callable($actual) === false) {
             throw new AssertionFailedError($message ?: 'Not callable');
@@ -91,7 +91,7 @@ trait AssertionTrait
     /**
      * Added PHPUnit v7
      */
-    private static function polyAssertIsFloat($actual, $message = ''): void
+    private static function polyAssertIsFloat($actual, $message = '')
     {
         if (\is_float($actual) === false) {
             throw new AssertionFailedError($message ?: 'Not float');
@@ -102,7 +102,7 @@ trait AssertionTrait
     /**
      * Added PHPUnit v7
      */
-    private static function polyAssertIsInt($actual, $message = ''): void
+    private static function polyAssertIsInt($actual, $message = '')
     {
         if (\is_integer($actual) === false) {
             throw new AssertionFailedError($message ?: 'Not int');
@@ -113,7 +113,7 @@ trait AssertionTrait
     /**
      * Added PHPUnit v7
      */
-    private static function polyAssertIsIterable($actual, $message = ''): void
+    private static function polyAssertIsIterable($actual, $message = '')
     {
         if (\is_array($actual) === false && ($actual instanceof \Traversable) === false) {
             throw new AssertionFailedError($message ?: 'Not iterable');
@@ -124,7 +124,7 @@ trait AssertionTrait
     /**
      * Added PHPUnit v7
      */
-    private static function polyAssertIsNumeric($actual, $message = ''): void
+    private static function polyAssertIsNumeric($actual, $message = '')
     {
         if (\is_numeric($actual) === false) {
             throw new AssertionFailedError($message ?: 'Not numeric');
@@ -135,7 +135,7 @@ trait AssertionTrait
     /**
      * Added PHPUnit v7
      */
-    private static function polyAssertIsObject($actual, $message = ''): void
+    private static function polyAssertIsObject($actual, $message = '')
     {
         if (\is_object($actual) === false) {
             throw new AssertionFailedError($message ?: 'Not object');
@@ -146,7 +146,7 @@ trait AssertionTrait
     /**
      * Added PHPUnit v7
      */
-    private static function polyAssertIsResource($actual, $message = ''): void
+    private static function polyAssertIsResource($actual, $message = '')
     {
         if (\is_resource($actual) === false) {
             throw new AssertionFailedError($message ?: 'Not resource');
@@ -157,7 +157,7 @@ trait AssertionTrait
     /**
      * Added PHPUnit v7
      */
-    private static function polyAssertIsScalar($actual, $message = ''): void
+    private static function polyAssertIsScalar($actual, $message = '')
     {
         if (\is_scalar($ExpectationFailedException) === false) {
             throw new AssertionFailedError($message ?: 'Not scalar');
@@ -168,7 +168,7 @@ trait AssertionTrait
     /**
      * Added PHPUnit v7
      */
-    private static function polyAssertIsString($actual, $message = ''): void
+    private static function polyAssertIsString($actual, $message = '')
     {
         if (\is_string($actual) === false) {
             throw new AssertionFailedError($message ?: 'Not string');
@@ -179,7 +179,7 @@ trait AssertionTrait
     /**
      * Added PHPUnit v7
      */
-    private static function polyAssertStringContainsString($needle, $haystack, $message = ''): void
+    private static function polyAssertStringContainsString($needle, $haystack, $message = '')
     {
         if (\strpos($haystack, $needle) === false) {
             throw new AssertionFailedError($message ?: 'Does not contain string');
@@ -187,7 +187,7 @@ trait AssertionTrait
         TestCase::assertTrue(true);
     }
 
-    private static function polyAssertStringNotContainsString($needle, $haystack, $message = ''): void
+    private static function polyAssertStringNotContainsString($needle, $haystack, $message = '')
     {
         if (\strpos($haystack, $needle) !== false) {
             throw new AssertionFailedError($message ?: 'String contains string');
@@ -198,7 +198,7 @@ trait AssertionTrait
     /**
      * Added PHPUnit v9
      */
-    private static function polyAssertMatchesRegularExpression($pattern, $string, $message = ''): void
+    private static function polyAssertMatchesRegularExpression($pattern, $string, $message = '')
     {
         if (\preg_match($pattern, $string) !== 1) {
             throw new AssertionFailedError($message ?: 'String does not match pattern');
