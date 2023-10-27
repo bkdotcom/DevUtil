@@ -2,16 +2,19 @@
 
 namespace bdk\DevUtil;
 
+use bdk\Debug;
+use bdk\Debug\Utility\FileStreamWrapper;
+use bdk\PubSub\Event;
+
 /**
  * Modify unit tests depending on
  *   what version of PHP we're testing
  *   what version of PHPUnit is being used.
- *
- * A better way of achieving this would be via file stream wrapper where
- * we don't actually modify the files
  */
 class ModifyTests
 {
+    const REGEX = '/(function \S+\s*\([^)]*\))\s*:\s*void/';
+
     private $modifiedFiles = array();
     protected $dir;
 
@@ -29,6 +32,10 @@ class ModifyTests
             return;
         }
         $this->dir = $dir;
+        if (\class_exists('bdk\\Debug')) {
+            $this->useFileStreamWrapper();
+            return;
+        }
         $files = $this->findFiles($this->dir, static function ($filepath) {
             return \preg_match('/\.php$/', $filepath) !== false
                 && \preg_match('/\b(Mock|Fixture)\b/', $filepath) !== 1;
@@ -49,7 +56,7 @@ class ModifyTests
     public function modifyFile($filepath)
     {
         $content = \preg_replace_callback(
-            '/(function \S+\s*\([^)]*\))\s*:\s*void/',
+            self::REGEX,
             function ($matches) use ($filepath) {
                 if (!isset($this->modifiedFiles[$filepath])) {
                     $this->modifiedFiles[$filepath] = array();
@@ -103,5 +110,31 @@ class ModifyTests
             $files = \array_filter($files, $filter);
         }
         return $files;
+    }
+
+    /**
+     * Register FileStreamWrapper and subscribe to event to modify tests on-the-fly
+     * File not actualy modified / no need to revert
+     *
+     * @return void
+     */
+    private function useFileStreamWrapper()
+    {
+        $eventManager = Debug::getInstance()->eventManager;
+        $eventManager->subscribe(Debug::EVENT_STREAM_WRAP, static function (Event $event) {
+            $filepath = $event['filepath'];
+            $inDir = \strpos($filepath, $this->dir) === 0;
+            if ($inDir === false || PHP_VERSION_ID >= 70100 || \preg_match('/\b(Mock|Fixture)\b/', $filepath) === 1) {
+                return;
+            }
+            $event['content'] = \preg_replace(
+                self::REGEX,
+                '$1',
+                $event['content'],
+                -1 // no limit
+            );
+        }, PHP_INT_MAX);
+        FileStreamWrapper::setEventManager($eventManager);
+        FileStreamWrapper::register();
     }
 }
