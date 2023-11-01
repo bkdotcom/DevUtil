@@ -121,7 +121,7 @@ class ModifyTests
     private function useFileStreamWrapper()
     {
         $eventManager = Debug::getInstance()->eventManager;
-        $eventManager->subscribe(Debug::EVENT_STREAM_WRAP, static function (Event $event) {
+        $eventManager->subscribe(Debug::EVENT_STREAM_WRAP, function (Event $event) {
             $filepath = $event['filepath'];
             $inDir = \strpos($filepath, $this->dir) === 0;
             if ($inDir === false || PHP_VERSION_ID >= 70100 || \preg_match('/\b(Mock|Fixture)\b/', $filepath) === 1) {
