@@ -181,6 +181,9 @@ trait AssertionTrait
      */
     private static function polyAssertStringContainsString($needle, $haystack, $message = '')
     {
+        if ($needle === '') {
+            throw new AssertionFailedError('needle is empty');
+        }
         if (\strpos($haystack, $needle) === false) {
             throw new AssertionFailedError($message ?: 'Does not contain string');
         }

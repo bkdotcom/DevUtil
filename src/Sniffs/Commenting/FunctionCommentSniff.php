@@ -70,13 +70,28 @@ class FunctionCommentSniff extends SquizFunctionCommentSniff
 
         $tokens = $phpcsFile->getTokens();
 
+        $haveMultiLineType = false;
         $params  = [];
         $maxType = 0;
         $maxVar  = 0;
+
         foreach ($tokens[$commentStart]['comment_tags'] as $pos => $tag) {
             if ($tokens[$tag]['content'] !== '@param') {
                 continue;
             }
+
+            $content = '';
+            $tagTemp = $tag;
+            while (true) {
+                $tagTemp++;
+                if (\in_array($tokens[$tagTemp]['code'], array(T_DOC_COMMENT_TAG, T_DOC_COMMENT_CLOSE_TAG), true)) {
+                    break;
+                }
+                $content .= $tokens[$tagTemp]['content'];
+            }
+            // remove leading "*"s
+            $content = \preg_replace('#^[ \t]*\*[ ]?#m', '', $content);
+            $content = \trim($content);
 
             $type         = '';
             $typeSpace    = 0;
@@ -85,29 +100,72 @@ class FunctionCommentSniff extends SquizFunctionCommentSniff
             $comment      = '';
             $commentLines = [];
             if ($tokens[$tag + 2]['code'] === T_DOC_COMMENT_STRING) {
+                /*
                 $matches = [];
-                \preg_match('/([^$&.]+)(?:((?:\.\.\.)?(?:\$|&)[^\s]+)(?:(\s+)(.*))?)?/', $tokens[$tag + 2]['content'], $matches);
+                // 1 = type
+                // 2 = name
+                // 3 = space after name
+                // 4 = comment / desc
+                $regex = '/
+                    ([^$&.]+)
+                    (?:
+                        (
+                        (?:\.\.\.)?
+                        (?:\$|&)[^\s]+
+                        )
+                        (?:(\s+)(.*))?
+                    )?
+                    /x';
+                \preg_match($regex, $content, $matches);
+                */
 
-                if (empty($matches) === false) {
-                    $typeLen   = \strlen($matches[1]);
-                    $type      = \trim($matches[1]);
+                $type = $this->extractTypeFromBody($content);
+                if ($type === false) {
+                    $error = 'Invalid param type';
+                    $phpcsFile->addError($error, $tag, 'ParamTypeInvalid');
+                }
+                \preg_match('/^(' . \preg_quote($type, '/') . '\s+)(.*)$/s', $content, $matches);
+
+                $type = $matches[1];
+                $content = $matches[2];
+                if (self::strStartsWithVariable($content)) {
+                    \preg_match('/^(\S*\s*)(.*)/', $content, $matches);
+                    $var = $matches[1];
+                    $comment = $matches[2];
+                }
+
+                /*
+                var_dump(array(
+                    'type' => $type,
+                    'var' => $var,
+                    'comment' => $comment,
+                ));
+                */
+
+                if (\strlen($type)) {
+                    $typeLen   = \strlen($type);
+                    $type      = \trim($type);
                     $typeSpace = $typeLen - \strlen($type);
                     $typeLen   = \strlen($type);
                     if ($typeLen > $maxType) {
                         $maxType = $typeLen;
                     }
+                    if (\preg_match('/[\r\n]/', $type)) {
+                        $haveMultiLineType = true;
+                    }
                 }
 
-                if (isset($matches[2]) === true) {
-                    $var    = $matches[2];
-                    $varLen = \strlen($var);
+                if (\strlen($var)) {
+                    $varLen   = \strlen($var);
+                    $var      = \trim($matches[1]);
+                    $varSpace = $varLen - \strlen($var);
+                    $varLen   = \strlen($var);
+
                     if ($varLen > $maxVar) {
                         $maxVar = $varLen;
                     }
 
-                    if (isset($matches[4]) === true) {
-                        $varSpace       = \strlen($matches[3]);
-                        $comment        = $matches[4];
+                    if (\strlen($comment)) {
                         $commentLines[] = [
                             'comment' => $comment,
                             'token'   => $tag + 2,
@@ -161,6 +219,10 @@ class FunctionCommentSniff extends SquizFunctionCommentSniff
 
         $realParams  = $phpcsFile->getMethodParameters($stackPtr);
         $foundParams = [];
+        $variadicParams = [];
+
+        // var_dump($params);
+        // var_dump($realParams);
 
         // We want to use ... for all variable length arguments, so added
         // this prefix to the variable name so comparisons are easier.
@@ -177,8 +239,9 @@ class FunctionCommentSniff extends SquizFunctionCommentSniff
             }
 
             $param['varNorm'] = $param['var'];
-            if (\substr($param['var'], 0, 3) === '...') {
-                $param['varNorm'] = substr($param['var'], 3);
+            if (\strpos($param['var'], '...') !== false) {
+                $param['varNorm'] = \trim($param['var'], ',.');
+                $variadicParams[] = $param['varNorm'];
             }
 
             // Check the param type value.
@@ -204,7 +267,7 @@ class FunctionCommentSniff extends SquizFunctionCommentSniff
 
                 // Check type hint for array and custom type.
                 $suggestedTypeHint = '';
-                if (\strpos($suggestedName, 'array') !== false || \substr($suggestedName, -2) === '[]') {
+                if (\strpos($suggestedName, 'array') !== false || \strpos($suggestedName, 'list') !== false || \substr($suggestedName, -2) === '[]') {
                     $suggestedTypeHint = 'array';
                 } elseif (\strpos($suggestedName, 'callable') !== false) {
                     $suggestedTypeHint = 'callable';
@@ -236,7 +299,7 @@ class FunctionCommentSniff extends SquizFunctionCommentSniff
                     $typeHint = $realParams[$pos]['type_hint'];
 
                     // Remove namespace prefixes when comparing.
-                    $compareTypeHint = \substr($suggestedTypeHint, (strlen($typeHint) * -1));
+                    $compareTypeHint = \substr($suggestedTypeHint, (\strlen($typeHint) * -1));
 
                     if ($typeHint === '') {
                         $error = 'Type hint "%s" missing for %s';
@@ -328,12 +391,14 @@ class FunctionCommentSniff extends SquizFunctionCommentSniff
             $foundParams[] = $param['varNorm'];
 
             // Check number of spaces after the type.
-            $this->checkSpacingAfterParamType($phpcsFile, $param, $maxType);
+            if ($haveMultiLineType === false) {
+                $this->checkSpacingAfterParamType($phpcsFile, $param, $maxType);
+            }
 
             // Make sure the param name is correct.
             if (isset($realParams[$pos]) === true) {
                 $realName = $realParams[$pos]['name'];
-                if ($realName !== $param['varNorm']) {
+                if ($realName !== $param['varNorm'] && !empty($param['variable_length']) && !empty($variadicParams)) {
                     $code = 'ParamNameNoMatch';
                     $data = [
                         $param['var'],
@@ -350,7 +415,7 @@ class FunctionCommentSniff extends SquizFunctionCommentSniff
 
                     $phpcsFile->addError($error, $param['tag'], $code, $data);
                 }
-            } elseif (\substr($param['var'], -4) !== ',...') {
+            } elseif (\strpos($param['var'], '...') === false) {
                 // We must have an extra parameter comment.
                 $error = 'Superfluous parameter comment';
                 $phpcsFile->addError($error, $param['tag'], 'ExtraParamComment');
@@ -361,7 +426,9 @@ class FunctionCommentSniff extends SquizFunctionCommentSniff
             }
 
             // Check number of spaces after the var name.
-            $this->checkSpacingAfterParamName($phpcsFile, $param, $maxVar);
+            if ($haveMultiLineType === false) {
+                $this->checkSpacingAfterParamName($phpcsFile, $param, $maxVar);
+            }
 
             // Param comments must start with a capital letter and end with a full stop.
             if (\preg_match('/^(\p{Ll}|\P{L})/u', $param['comment']) === 1) {
@@ -383,12 +450,59 @@ class FunctionCommentSniff extends SquizFunctionCommentSniff
 
         // Report missing comments.
         $diff = \array_diff($realNames, $foundParams);
+        if ($variadicParams && \end($realNames) == \end($diff)) {
+            // last name doesn't match... but phpdoc indicates variadic... ignore
+            \array_pop($diff);
+        }
         foreach ($diff as $neededParam) {
             $error = 'Doc comment for parameter "%s" missing';
             $data  = [$neededParam];
             $phpcsFile->addError($error, $commentStart, 'MissingParamTag', $data);
         }
     }
+
+    private static function extractTypeFromBody($tagStr)
+    {
+        $type = '';
+        $nestingLevel = 0;
+        for ($i = 0, $iMax = \strlen($tagStr); $i < $iMax; $i++) {
+            $char = $tagStr[$i];
+            if ($nestingLevel === 0 && \trim($char) === '') {
+                break;
+            }
+            $type .= $char;
+            if (\in_array($char, array('<', '(', '[', '{'), true)) {
+                $nestingLevel++;
+                continue;
+            }
+            if (\in_array($char, array('>', ')', ']', '}'), true)) {
+                $nestingLevel--;
+                continue;
+            }
+        }
+        return $nestingLevel === 0
+            ? $type
+            : false;
+    }
+
+    /**
+     * Test if string appears to start with a variable name
+     *
+     * @param string $str Stringto test
+     *
+     * @return bool
+     */
+    private static function strStartsWithVariable($str)
+    {
+        if ($str === null) {
+            return false;
+        }
+        return \strpos($str, '$') === 0
+           || \strpos($str, '&$') === 0
+           || \strpos($str, '...$') === 0
+           || \strpos($str, '&...$') === 0;
+    }
+
 
     /**
      * Process the return comment of this function comment.
@@ -572,12 +686,48 @@ class FunctionCommentSniff extends SquizFunctionCommentSniff
      */
     private function isInheritDoc(File $phpcsFile, $stackPtr)
     {
-        $start = $phpcsFile->findPrevious(T_DOC_COMMENT_OPEN_TAG, $stackPtr) + 1;
-        $end = $phpcsFile->findNext(T_DOC_COMMENT_CLOSE_TAG, $start);
-        $content = $phpcsFile->getTokensAsString($start, $end - $start);
+        // will this potentially find doc comment belonging to a different method?
+        $phpDocStart = $phpcsFile->findPrevious(T_DOC_COMMENT_OPEN_TAG, $stackPtr);
+        if ($phpDocStart === false) {
+            // there is no doc comment
+            return true;
+        }
+        $tokens = $phpcsFile->getTokens();
+        $phpDocClose = $tokens[$phpDocStart]['comment_closer'];
+        $nextPtr = $phpDocClose;
+        while (true) {
+            $nextPtr = $phpcsFile->findNext([T_WHITESPACE], $nextPtr + 1, null, true);
+            $nextToken = $tokens[$nextPtr];
+            if ($nextToken['code'] === T_ATTRIBUTE) {
+                // skip over attribute
+                $nextPtr = $nextToken['attribute_closer'];
+                continue;
+            }
+            break;
+        }
+
+        if ($tokens[$nextPtr]['line'] !== $tokens[$stackPtr]['line']) {
+            // DocComment we found doesn't belong to the function
+            return true;
+        }
+
+        // $end = $phpcsFile->findNext(T_DOC_COMMENT_CLOSE_TAG, $phpDocStart);
+        $content = $phpcsFile->getTokensAsString($phpDocStart + 1, $phpDocClose - $phpDocStart - 1);
         // remove leading "*"s
         $content = \preg_replace('#^[ \t]*\*[ ]?#m', '', $content);
         $content = \trim($content);
-        return \preg_match('#^{@inheritdoc}$#i', $content) === 1;
-    }
+        if (\preg_match('#^{@inheritdoc}$#i', $content) === 1) {
+            // comment contains only "{@inheritdoc}"
+            return true;
+		}
+        if (\preg_match('/\s*{@inheritdoc}\s*$/im', $content) !== 1) {
+            // comment does not contain '{inheritdoc}' on own line
+            return false;
+        }
+        // if we only contain tags other than @param, & @return, then consider it inherited
+        $tags = \array_map(static function ($tagPtr) use ($tokens) {
+            return $tokens[$tagPtr]['content'];
+        }, $tokens[$phpDocStart]['comment_tags']);
+        return empty(\array_intersect($tags, array('@param' , '@return')));
+	}
 }
