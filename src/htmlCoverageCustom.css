@@ -12,6 +12,10 @@ body {
     color: #cbcbcb !important;
 }
 
+footer .legend {
+    color: #3f4724 !important;
+}
+
 .table-bordered td,
 .table-bordered th {
     border: 1px solid #424242;

@@ -3,7 +3,6 @@
 namespace bdk\DevUtil;
 
 use bdk\Debug;
-use bdk\Debug\Utility\FileStreamWrapper;
 use bdk\PubSub\Event;
 
 /**
@@ -16,6 +15,8 @@ class ModifyTests
     const REGEX = '/(function \S+\s*\([^)]*\))\s*:\s*void/';
 
     private $modifiedFiles = array();
+
+    /** @var string */
     protected $dir;
 
     /**
@@ -103,8 +104,8 @@ class ModifyTests
     private function findFiles($dir, $filter = null)
     {
         $files = \glob($dir . '/*');
-        foreach (\glob($dir . '/*', GLOB_ONLYDIR | GLOB_NOSORT) as $dir) {
-            $files = \array_merge($files, self::findFiles($dir));
+        foreach (\glob($dir . '/*', GLOB_ONLYDIR | GLOB_NOSORT) as $dirNew) {
+            $files = \array_merge($files, self::findFiles($dirNew));
         }
         if (\is_callable($filter)) {
             $files = \array_filter($files, $filter);
@@ -114,7 +115,7 @@ class ModifyTests
 
     /**
      * Register FileStreamWrapper and subscribe to event to modify tests on-the-fly
-     * File not actualy modified / no need to revert
+     * File not actually modified / no need to revert
      *
      * @return void
      */
@@ -134,7 +135,12 @@ class ModifyTests
                 -1 // no limit
             );
         }, PHP_INT_MAX);
-        FileStreamWrapper::setEventManager($eventManager);
-        FileStreamWrapper::register();
+        if (\class_exists('bdk\Utility\FileStreamWrapper')) {
+            \bdk\Utility\FileStreamWrapper::setEventManager($eventManager);
+            \bdk\Utility\FileStreamWrapper::register();
+        } elseif (\class_exists('bdk\Debug\Utility\FileStreamWrapper')) {
+            \bdk\Debug\Utility\FileStreamWrapper::setEventManager($eventManager);
+            \bdk\Debug\Utility\FileStreamWrapper::register();
+        }
     }
 }
